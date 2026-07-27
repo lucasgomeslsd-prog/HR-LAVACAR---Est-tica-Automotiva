@@ -54,14 +54,14 @@ export const INITIAL_SERVICES: ServiceItem[] = [
   {
     id: 'srv-6',
     nome: 'Limpeza e Hidratação de Couro',
-    descricao: 'Remoção de sujeira encrostada e aplicação de hidratante fosco com proteção UV.',
+    descricao: 'Remoção de sujeira incrustada e aplicação de hidratante fosco com proteção UV.',
     categoria: 'estetica',
     duracaoMinutos: 60,
     precos: { hatch: 120, sedan: 140, suv: 170, moto: 0, utilitario: 190 }
   },
   {
     id: 'srv-7',
-    nome: 'Cristalização de Parabrisa & Vidros',
+    nome: 'Cristalização de Para-Brisa & Vidros',
     descricao: 'Repelência de água da chuva para máxima visibilidade e segurança.',
     categoria: 'protecao',
     duracaoMinutos: 40,
@@ -69,174 +69,9 @@ export const INITIAL_SERVICES: ServiceItem[] = [
   }
 ];
 
-export const INITIAL_CLIENTS: Client[] = [
-  {
-    id: 'cli-1',
-    nome: 'Marcos Oliveira',
-    whatsapp: '5541998887766',
-    email: 'marcos.oliveira@email.com',
-    cpfCnpj: '123.456.789-00',
-    dataCadastro: '2026-07-20',
-    observacoes: 'Cliente VIP, prefere atendimento pela manhã.',
-    veiculos: [
-      {
-        id: 'vei-1',
-        placa: 'ABC1D23',
-        modelo: 'Civic 2.0 LX',
-        marca: 'Honda',
-        cor: 'Preto Pérola',
-        categoria: 'sedan',
-        ano: '2022'
-      }
-    ]
-  },
-  {
-    id: 'cli-2',
-    nome: 'Juliana Costa',
-    whatsapp: '5541987654321',
-    email: 'juliana.costa@email.com',
-    cpfCnpj: '987.654.321-11',
-    dataCadastro: '2026-07-22',
-    observacoes: 'Cuidado extra com bancos de couro.',
-    veiculos: [
-      {
-        id: 'vei-2',
-        placa: 'JKL5M67',
-        modelo: 'Compass Limited',
-        marca: 'Jeep',
-        cor: 'Branco Polar',
-        categoria: 'suv',
-        ano: '2023'
-      }
-    ]
-  },
-  {
-    id: 'cli-3',
-    nome: 'Roberto Santos',
-    whatsapp: '5541991234567',
-    email: 'roberto.santos@email.com',
-    cpfCnpj: '456.789.123-22',
-    dataCadastro: '2026-07-25',
-    observacoes: 'Deseja higienização completa.',
-    veiculos: [
-      {
-        id: 'vei-3',
-        placa: 'XYZ9A87',
-        modelo: 'Golf TSI',
-        marca: 'Volkswagen',
-        cor: 'Cinza Platinum',
-        categoria: 'hatch',
-        ano: '2021'
-      }
-    ]
-  }
-];
+export const INITIAL_CLIENTS: Client[] = [];
 
-export const INITIAL_SERVICE_ORDERS: ServiceOrder[] = [
-  {
-    id: 'os-1001',
-    numeroOS: 'OS-1001',
-    clientId: 'cli-1',
-    clientNome: 'Marcos Oliveira',
-    clientWhatsApp: '5541998887766',
-    vehiclePlaca: 'ABC1D23',
-    vehicleModelo: 'Civic 2.0 LX',
-    vehicleMarca: 'Honda',
-    vehicleCor: 'Preto Pérola',
-    vehicleCategoria: 'sedan',
-    servicos: [
-      { serviceId: 'srv-1', nome: 'Lavagem Simples + Pretinho', valor: 60 }
-    ],
-    valorTotal: 60,
-    desconto: 0,
-    valorFinal: 60,
-    status: 'AGUARDANDO',
-    statusPagamento: 'PENDENTE',
-    dataAbertura: new Date().toISOString(),
-    previsaoEntrega: new Date(Date.now() + 3600000 * 2).toISOString(),
-    responsavelLavagem: 'Carlos Silva',
-    observacoes: 'Aguardando liberação de box',
-    historicoWhatsApp: []
-  },
-  {
-    id: 'os-1002',
-    numeroOS: 'OS-1002',
-    clientId: 'cli-2',
-    clientNome: 'Juliana Costa',
-    clientWhatsApp: '5541987654321',
-    vehiclePlaca: 'JKL5M67',
-    vehicleModelo: 'Compass Limited',
-    vehicleMarca: 'Jeep',
-    vehicleCor: 'Branco Polar',
-    vehicleCategoria: 'suv',
-    servicos: [
-      { serviceId: 'srv-2', nome: 'Lavagem Detalhada Técnico-Estética', valor: 160 }
-    ],
-    valorTotal: 160,
-    desconto: 10,
-    valorFinal: 150,
-    status: 'LAVAGEM',
-    statusPagamento: 'PAGO',
-    formaPagamento: 'PIX',
-    dataAbertura: new Date().toISOString(),
-    previsaoEntrega: new Date(Date.now() + 3600000 * 3).toISOString(),
-    responsavelLavagem: 'Lucas Souza',
-    observacoes: 'Lavagem detalhada em andamento',
-    historicoWhatsApp: []
-  },
-  {
-    id: 'os-1003',
-    numeroOS: 'OS-1003',
-    clientId: 'cli-3',
-    clientNome: 'Roberto Santos',
-    clientWhatsApp: '5541991234567',
-    vehiclePlaca: 'XYZ9A87',
-    vehicleModelo: 'Golf TSI',
-    vehicleMarca: 'Volkswagen',
-    vehicleCor: 'Cinza Platinum',
-    vehicleCategoria: 'hatch',
-    servicos: [
-      { serviceId: 'srv-4', nome: 'Polimento Comercial Monopasso', valor: 380 }
-    ],
-    valorTotal: 380,
-    desconto: 0,
-    valorFinal: 380,
-    status: 'POLIMENTO',
-    statusPagamento: 'PAGO',
-    formaPagamento: 'CARTAO_CREDITO',
-    dataAbertura: new Date().toISOString(),
-    previsaoEntrega: new Date(Date.now() + 3600000 * 4).toISOString(),
-    responsavelLavagem: 'André Lima',
-    observacoes: 'Polimento de pintura em andamento',
-    historicoWhatsApp: []
-  },
-  {
-    id: 'os-1004',
-    numeroOS: 'OS-1004',
-    clientId: 'cli-1',
-    clientNome: 'Marcos Oliveira',
-    clientWhatsApp: '5541998887766',
-    vehiclePlaca: 'ABC1D23',
-    vehicleModelo: 'Civic 2.0 LX',
-    vehicleMarca: 'Honda',
-    vehicleCor: 'Preto Pérola',
-    vehicleCategoria: 'sedan',
-    servicos: [
-      { serviceId: 'srv-6', nome: 'Limpeza e Hidratação de Couro', valor: 140 }
-    ],
-    valorTotal: 140,
-    desconto: 0,
-    valorFinal: 140,
-    status: 'PRONTO',
-    statusPagamento: 'PAGO',
-    formaPagamento: 'PIX',
-    dataAbertura: new Date().toISOString(),
-    previsaoEntrega: new Date().toISOString(),
-    responsavelLavagem: 'Carlos Silva',
-    observacoes: 'Veículo pronto para retirada',
-    historicoWhatsApp: []
-  }
-];
+export const INITIAL_SERVICE_ORDERS: ServiceOrder[] = [];
 
 export const INITIAL_APPOINTMENTS: Appointment[] = [];
 
