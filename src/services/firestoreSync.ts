@@ -20,6 +20,12 @@ import {
   DailyCashRegister 
 } from '../types';
 
+// Helper to sanitize data for Firestore (stripping any undefined fields)
+function sanitizeForFirestore<T>(data: T): T {
+  if (data === undefined || data === null) return data;
+  return JSON.parse(JSON.stringify(data));
+}
+
 export const FirestoreSync = {
   // Initialize connection & Listeners
   init: async (listeners: {
@@ -120,7 +126,7 @@ export const FirestoreSync = {
   // Direct sync write methods
   saveClient: async (client: Client) => {
     try {
-      await setDoc(doc(db, 'clients', client.id), client);
+      await setDoc(doc(db, 'clients', client.id), sanitizeForFirestore(client));
     } catch (err) {
       console.error('Firestore saveClient error:', err);
     }
@@ -136,7 +142,7 @@ export const FirestoreSync = {
 
   saveOrder: async (order: ServiceOrder) => {
     try {
-      await setDoc(doc(db, 'serviceOrders', order.id), order);
+      await setDoc(doc(db, 'serviceOrders', order.id), sanitizeForFirestore(order));
     } catch (err) {
       console.error('Firestore saveOrder error:', err);
     }
@@ -152,7 +158,7 @@ export const FirestoreSync = {
 
   saveAppointment: async (appointment: Appointment) => {
     try {
-      await setDoc(doc(db, 'appointments', appointment.id), appointment);
+      await setDoc(doc(db, 'appointments', appointment.id), sanitizeForFirestore(appointment));
     } catch (err) {
       console.error('Firestore saveAppointment error:', err);
     }
@@ -170,7 +176,7 @@ export const FirestoreSync = {
     try {
       const batch = writeBatch(db);
       services.forEach(srv => {
-        batch.set(doc(db, 'services', srv.id), srv);
+        batch.set(doc(db, 'services', srv.id), sanitizeForFirestore(srv));
       });
       await batch.commit();
     } catch (err) {
@@ -182,7 +188,7 @@ export const FirestoreSync = {
     try {
       const batch = writeBatch(db);
       inventory.forEach(inv => {
-        batch.set(doc(db, 'inventory', inv.id), inv);
+        batch.set(doc(db, 'inventory', inv.id), sanitizeForFirestore(inv));
       });
       await batch.commit();
     } catch (err) {
@@ -202,7 +208,7 @@ export const FirestoreSync = {
     try {
       const batch = writeBatch(db);
       templates.forEach(tpl => {
-        batch.set(doc(db, 'templates', tpl.id), tpl);
+        batch.set(doc(db, 'templates', tpl.id), sanitizeForFirestore(tpl));
       });
       await batch.commit();
     } catch (err) {
@@ -212,7 +218,7 @@ export const FirestoreSync = {
 
   saveWaConfig: async (config: WhatsAppApiConfig) => {
     try {
-      await setDoc(doc(db, 'settings', 'waConfig'), config);
+      await setDoc(doc(db, 'settings', 'waConfig'), sanitizeForFirestore(config));
     } catch (err) {
       console.error('Firestore saveWaConfig error:', err);
     }
@@ -220,7 +226,7 @@ export const FirestoreSync = {
 
   saveBusinessConfig: async (config: BusinessConfig) => {
     try {
-      await setDoc(doc(db, 'settings', 'businessConfig'), config);
+      await setDoc(doc(db, 'settings', 'businessConfig'), sanitizeForFirestore(config));
     } catch (err) {
       console.error('Firestore saveBusinessConfig error:', err);
     }
@@ -228,7 +234,7 @@ export const FirestoreSync = {
 
   saveCashRegister: async (cashRegister: DailyCashRegister) => {
     try {
-      await setDoc(doc(db, 'settings', 'cashRegister'), cashRegister);
+      await setDoc(doc(db, 'settings', 'cashRegister'), sanitizeForFirestore(cashRegister));
     } catch (err) {
       console.error('Firestore saveCashRegister error:', err);
     }
