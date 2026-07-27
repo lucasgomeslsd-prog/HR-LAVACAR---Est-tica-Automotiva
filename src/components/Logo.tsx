@@ -27,9 +27,12 @@ export const Logo: React.FC<LogoProps> = ({
         {/* SVG Graphic - Car + Bubbles + Water Splash Emblem */}
         <svg 
           viewBox="0 0 100 100" 
+          width="100"
+          height="100"
           fill="none" 
           xmlns="http://www.w3.org/2000/svg" 
           className="w-full h-full relative z-10 drop-shadow-[0_2px_4px_rgba(0,174,239,0.5)]"
+          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
         >
           {/* Foam Bubbles on Top */}
           <circle cx="35" cy="22" r="4" fill="#38bdf8" />
