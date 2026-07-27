@@ -190,6 +190,10 @@ export function App() {
     }
 
     setClients(updated);
+    setPreselectedClient(client);
+    if (client.veiculos && client.veiculos.length > 0) {
+      setPreselectedVehicle(client.veiculos[0]);
+    }
 
     if (openWaAfter) {
       setSelectedWaClient(client);
@@ -544,6 +548,11 @@ export function App() {
         editingOrder={editingOS}
         preselectedClient={preselectedClient}
         preselectedVehicle={preselectedVehicle}
+        onOpenNewClient={() => {
+          setIsOSModalOpen(false);
+          setEditingClient(null);
+          setIsClientModalOpen(true);
+        }}
       />
 
       {/* Service Order Printable Receipt Modal */}

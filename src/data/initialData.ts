@@ -69,7 +69,48 @@ export const INITIAL_SERVICES: ServiceItem[] = [
   }
 ];
 
-export const INITIAL_CLIENTS: Client[] = [];
+export const INITIAL_CLIENTS: Client[] = [
+  {
+    id: 'cli-101',
+    nome: 'Marcos Oliveira',
+    whatsapp: '5541998887766',
+    email: 'marcos.oliveira@email.com',
+    cpfCnpj: '123.456.789-00',
+    dataCadastro: new Date().toISOString().split('T')[0],
+    observacoes: 'Cliente VIP, prefere atendimento no início da manhã.',
+    veiculos: [
+      {
+        id: 'vei-101',
+        placa: 'ABC1D23',
+        modelo: 'Civic 2.0 LX',
+        marca: 'Honda',
+        cor: 'Preto Pérola',
+        categoria: 'sedan',
+        ano: '2022'
+      }
+    ]
+  },
+  {
+    id: 'cli-102',
+    nome: 'Juliana Costa',
+    whatsapp: '5541987654321',
+    email: 'juliana.costa@email.com',
+    cpfCnpj: '987.654.321-11',
+    dataCadastro: new Date().toISOString().split('T')[0],
+    observacoes: 'Atenção aos detalhes no acabamento do couro.',
+    veiculos: [
+      {
+        id: 'vei-102',
+        placa: 'JKL5M67',
+        modelo: 'Compass Limited',
+        marca: 'Jeep',
+        cor: 'Branco Polar',
+        categoria: 'suv',
+        ano: '2023'
+      }
+    ]
+  }
+];
 
 export const INITIAL_SERVICE_ORDERS: ServiceOrder[] = [];
 
