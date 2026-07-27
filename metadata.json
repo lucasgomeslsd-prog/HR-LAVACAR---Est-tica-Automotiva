@@ -1,0 +1,6 @@
+{
+  "name": "HR LAVACAR",
+  "description": "Aplicativo de gestão para lava rápido e estética automotiva com ordens de serviço, checklist, painel de produção e integração WhatsApp.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

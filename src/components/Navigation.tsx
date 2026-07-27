@@ -1,0 +1,267 @@
+import React from 'react';
+import { 
+  LayoutDashboard, 
+  Kanban, 
+  ClipboardList, 
+  Users, 
+  CalendarDays, 
+  DollarSign, 
+  PieChart, 
+  Package, 
+  BarChart3, 
+  Settings,
+  Lock,
+  MessageSquareCode,
+  CheckSquare
+} from 'lucide-react';
+import { Role } from '../types';
+
+export type TabType = 
+  | 'dashboard'
+  | 'producao'
+  | 'os'
+  | 'clientes'
+  | 'agendamentos'
+  | 'caixa'
+  | 'financeiro'
+  | 'estoque'
+  | 'relatorios'
+  | 'configuracoes';
+
+interface NavigationProps {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+  role?: Role;
+  currentRole?: Role;
+  pinUnlocked: boolean;
+  onRequestPinUnlock?: () => void;
+  onOpenPinModal?: () => void;
+  counts?: {
+    prontosCount?: number;
+    emProducaoCount?: number;
+    agendamentosHoje?: number;
+    estoqueBaixo?: number;
+  };
+}
+
+export const Navigation: React.FC<NavigationProps> = ({
+  activeTab,
+  onTabChange,
+  role: propRole,
+  currentRole,
+  pinUnlocked,
+  onRequestPinUnlock,
+  onOpenPinModal,
+  counts
+}) => {
+  const activeRole = currentRole || propRole || 'admin';
+  const handleUnlockPin = onRequestPinUnlock || onOpenPinModal || (() => {});
+  
+  const safeCounts = {
+    prontosCount: counts?.prontosCount ?? 0,
+    emProducaoCount: counts?.emProducaoCount ?? 0,
+    agendamentosHoje: counts?.agendamentosHoje ?? 0,
+    estoqueBaixo: counts?.estoqueBaixo ?? 0,
+  };
+
+  const handleTabClick = (tab: TabType, isAdminOnly: boolean = false) => {
+    if ((activeRole === 'funcionario' || activeRole === 'FUNCIONARIO') && isAdminOnly) {
+      alert('Esta seção é exclusiva do perfil Administrador.');
+      return;
+    }
+
+    const isPinProtected = ['caixa', 'financeiro', 'relatorios'].includes(tab);
+    if ((activeRole === 'admin' || activeRole === 'ADMIN') && isPinProtected && !pinUnlocked) {
+      handleUnlockPin();
+      return;
+    }
+
+    onTabChange(tab);
+  };
+
+  const navItems = [
+    {
+      id: 'dashboard' as TabType,
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      adminOnly: false,
+      badge: null
+    },
+    {
+      id: 'producao' as TabType,
+      label: 'Painel de Produção',
+      icon: Kanban,
+      adminOnly: false,
+      badge: safeCounts.emProducaoCount > 0 ? (
+        <span className="ml-auto bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md text-[10px] font-bold">
+          {safeCounts.emProducaoCount}
+        </span>
+      ) : null
+    },
+    {
+      id: 'os' as TabType,
+      label: 'Ordens de Serviço',
+      icon: ClipboardList,
+      adminOnly: false,
+      badge: safeCounts.prontosCount > 0 ? (
+        <span className="ml-auto bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md text-[10px] font-bold animate-pulse">
+          {safeCounts.prontosCount} pronto
+        </span>
+      ) : null
+    },
+    {
+      id: 'clientes' as TabType,
+      label: 'Clientes & Veículos',
+      icon: Users,
+      adminOnly: false,
+      badge: null
+    },
+    {
+      id: 'agendamentos' as TabType,
+      label: 'Agendamentos',
+      icon: CalendarDays,
+      adminOnly: false,
+      badge: safeCounts.agendamentosHoje > 0 ? (
+        <span className="ml-auto bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md text-[10px] font-bold">
+          {safeCounts.agendamentosHoje}
+        </span>
+      ) : null
+    },
+    // Admin Only Sections
+    {
+      id: 'caixa' as TabType,
+      label: 'Caixa do Dia',
+      icon: DollarSign,
+      adminOnly: true,
+      pinProtected: true,
+      badge: null
+    },
+    {
+      id: 'financeiro' as TabType,
+      label: 'Financeiro',
+      icon: PieChart,
+      adminOnly: true,
+      pinProtected: true,
+      badge: null
+    },
+    {
+      id: 'estoque' as TabType,
+      label: 'Estoque & Insumos',
+      icon: Package,
+      adminOnly: true,
+      pinProtected: false,
+      badge: safeCounts.estoqueBaixo > 0 ? (
+        <span className="ml-auto bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md text-[10px] font-bold">
+          {safeCounts.estoqueBaixo} alerta
+        </span>
+      ) : null
+    },
+    {
+      id: 'relatorios' as TabType,
+      label: 'Relatórios & DRE',
+      icon: BarChart3,
+      adminOnly: true,
+      pinProtected: true,
+      badge: null
+    },
+    {
+      id: 'configuracoes' as TabType,
+      label: 'Configurações',
+      icon: Settings,
+      adminOnly: true,
+      pinProtected: false,
+      badge: null
+    }
+  ];
+
+  // Selected items for mobile bottom bar
+  const mobileNavItems = [
+    { id: 'dashboard' as TabType, label: 'Início', icon: LayoutDashboard },
+    { id: 'producao' as TabType, label: 'Produção', icon: Kanban, count: safeCounts.emProducaoCount },
+    { id: 'os' as TabType, label: 'OSs', icon: ClipboardList, count: safeCounts.prontosCount },
+    { id: 'clientes' as TabType, label: 'Clientes', icon: Users },
+    { id: 'caixa' as TabType, label: 'Caixa', icon: DollarSign, adminOnly: true, pinProtected: true },
+    { id: 'configuracoes' as TabType, label: 'Ajustes', icon: Settings, adminOnly: true }
+  ];
+
+  return (
+    <>
+      {/* Desktop Sidebar Navigation */}
+      <nav className="hidden md:block bg-white border border-slate-200 rounded-2xl w-60 shrink-0 p-3 shadow-xs sticky top-20 z-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
+        <div className="flex flex-col gap-1">
+          {navItems.map(item => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const isLockedForStaff = (activeRole === 'funcionario' || activeRole === 'FUNCIONARIO') && item.adminOnly;
+            const isPinLockedForAdmin = (activeRole === 'admin' || activeRole === 'ADMIN') && item.pinProtected && !pinUnlocked;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleTabClick(item.id, item.adminOnly)}
+                id={`nav-tab-${item.id}`}
+                disabled={isLockedForStaff}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer text-left w-full ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-xs'
+                    : isLockedForStaff
+                    ? 'text-slate-400 opacity-50 cursor-not-allowed'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                <span className="truncate">{item.label}</span>
+
+                {/* Pin indicator */}
+                {item.pinProtected && (activeRole === 'admin' || activeRole === 'ADMIN') && isPinLockedForAdmin && (
+                  <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0 ml-auto" />
+                )}
+
+                {item.badge}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-2xl px-1 py-1.5 flex items-center justify-around">
+        {mobileNavItems.map(item => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          const isLockedForStaff = (activeRole === 'funcionario' || activeRole === 'FUNCIONARIO') && item.adminOnly;
+          const isPinLockedForAdmin = (activeRole === 'admin' || activeRole === 'ADMIN') && item.pinProtected && !pinUnlocked;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleTabClick(item.id, item.adminOnly)}
+              id={`mobile-nav-tab-${item.id}`}
+              disabled={isLockedForStaff}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
+                isActive
+                  ? 'text-blue-600 font-bold scale-105'
+                  : isLockedForStaff
+                  ? 'text-slate-300 opacity-40'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <div className="relative">
+                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                {item.count && item.count > 0 ? (
+                  <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center">
+                    {item.count}
+                  </span>
+                ) : null}
+                {item.pinProtected && (activeRole === 'admin' || activeRole === 'ADMIN') && isPinLockedForAdmin && (
+                  <Lock className="w-2.5 h-2.5 text-amber-500 absolute -top-0.5 -right-1.5" />
+                )}
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 truncate max-w-[56px]">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </>
+  );
+};
