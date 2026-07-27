@@ -1,0 +1,23 @@
+{
+  "entities": {
+    "Client": {
+      "collectionName": "clients",
+      "fields": {
+        "id": { "type": "string", "required": true },
+        "nome": { "type": "string", "required": true },
+        "whatsapp": { "type": "string", "required": true }
+      }
+    },
+    "ServiceOrder": {
+      "collectionName": "serviceOrders",
+      "fields": {
+        "id": { "type": "string", "required": true },
+        "numeroOS": { "type": "string", "required": true },
+        "clientId": { "type": "string", "required": true }
+      }
+    }
+  },
+  "securityRules": {
+    "defaultAccess": "public"
+  }
+}

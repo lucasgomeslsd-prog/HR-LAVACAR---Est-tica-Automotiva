@@ -21,6 +21,7 @@ import {
 
 // Storage Service
 import { StorageService } from './services/storage';
+import { FirestoreSync } from './services/firestoreSync';
 
 // Header & Navigation
 import { Header } from './components/Header';
@@ -84,8 +85,9 @@ export function App() {
   const [selectedWaOS, setSelectedWaOS] = useState<ServiceOrder | null>(null);
   const [selectedWaClient, setSelectedWaClient] = useState<Client | null>(null);
 
-  // Load Initial Data from StorageService on Mount
+  // Load Initial Data and start Firestore Real-Time Cloud Sync on Mount
   useEffect(() => {
+    // 1. Initial local load
     const data = StorageService.loadAllData();
     setOrders(data.orders);
     setClients(data.clients);
@@ -96,6 +98,50 @@ export function App() {
     setTemplates(data.templates);
     setWaConfig(data.waConfig);
     setBusinessConfig(data.businessConfig);
+
+    // 2. Initialize Firestore real-time listener across all shared links
+    FirestoreSync.init({
+      onClientsUpdate: (cloudClients) => {
+        setClients(cloudClients);
+        StorageService.saveClients(cloudClients);
+      },
+      onOrdersUpdate: (cloudOrders) => {
+        setOrders(cloudOrders);
+        StorageService.saveOrders(cloudOrders);
+      },
+      onAppointmentsUpdate: (cloudApts) => {
+        setAppointments(cloudApts);
+        StorageService.saveAppointments(cloudApts);
+      },
+      onServicesUpdate: (cloudServices) => {
+        if (cloudServices.length > 0) {
+          setServices(cloudServices);
+          StorageService.saveServices(cloudServices);
+        }
+      },
+      onInventoryUpdate: (cloudInventory) => {
+        setInventory(cloudInventory);
+        StorageService.saveInventory(cloudInventory);
+      },
+      onTemplatesUpdate: (cloudTemplates) => {
+        if (cloudTemplates.length > 0) {
+          setTemplates(cloudTemplates);
+          StorageService.saveTemplates(cloudTemplates);
+        }
+      },
+      onWaConfigUpdate: (cloudWa) => {
+        setWaConfig(cloudWa);
+        StorageService.saveWaConfig(cloudWa);
+      },
+      onBusinessConfigUpdate: (cloudBusiness) => {
+        setBusinessConfig(cloudBusiness);
+        StorageService.saveBusinessConfig(cloudBusiness);
+      },
+      onCashRegisterUpdate: (cloudCash) => {
+        setCashRegister(cloudCash);
+        StorageService.saveCashRegister(cloudCash);
+      }
+    });
   }, []);
 
   // Sync state changes back to StorageService
@@ -190,10 +236,7 @@ export function App() {
     }
 
     setClients(updated);
-    setPreselectedClient(client);
-    if (client.veiculos && client.veiculos.length > 0) {
-      setPreselectedVehicle(client.veiculos[0]);
-    }
+    FirestoreSync.saveClient(client);
 
     if (openWaAfter) {
       setSelectedWaClient(client);
@@ -204,6 +247,7 @@ export function App() {
 
   const handleDeleteClient = (clientId: string) => {
     setClients(prev => (prev || []).filter(c => c.id !== clientId));
+    FirestoreSync.deleteClient(clientId);
   };
 
   // --- Handlers for Service Orders (OS) ---
@@ -219,6 +263,7 @@ export function App() {
     }
 
     setOrders(updated);
+    FirestoreSync.saveOrder(order);
 
     if (openChecklistAfter) {
       setSelectedChecklistOS(order);
@@ -233,13 +278,16 @@ export function App() {
 
   const handleDeleteOS = (orderId: string) => {
     setOrders(prev => (prev || []).filter(o => o.id !== orderId));
+    FirestoreSync.deleteOrder(orderId);
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: OSStatus) => {
     const safeOrders = orders || [];
+    let updatedTarget: ServiceOrder | null = null;
     const updated = safeOrders.map(o => {
       if (o.id === orderId) {
         const orderUpdated = { ...o, status: newStatus };
+        updatedTarget = orderUpdated;
         
         // Auto trigger WhatsApp "Car Ready" modal if status changed to PRONTO
         if (newStatus === 'PRONTO' && o.status !== 'PRONTO') {
@@ -256,33 +304,64 @@ export function App() {
     });
 
     setOrders(updated);
+    if (updatedTarget) {
+      FirestoreSync.saveOrder(updatedTarget);
+    }
   };
 
   const handleUpdatePaymentStatus = (orderId: string, newStatus: PaymentStatus) => {
+    let updatedTarget: ServiceOrder | null = null;
     setOrders(prev =>
-      (prev || []).map(o => (o.id === orderId ? { ...o, statusPagamento: newStatus } : o))
+      (prev || []).map(o => {
+        if (o.id === orderId) {
+          const u = { ...o, statusPagamento: newStatus };
+          updatedTarget = u;
+          return u;
+        }
+        return o;
+      })
     );
+    if (updatedTarget) {
+      FirestoreSync.saveOrder(updatedTarget);
+    }
   };
 
   const handleSaveChecklist = (orderId: string, checklistData: any) => {
+    let updatedTarget: ServiceOrder | null = null;
     setOrders(prev =>
-      (prev || []).map(o => (o.id === orderId ? { ...o, checklist: checklistData } : o))
+      (prev || []).map(o => {
+        if (o.id === orderId) {
+          const u = { ...o, checklist: checklistData };
+          updatedTarget = u;
+          return u;
+        }
+        return o;
+      })
     );
+    if (updatedTarget) {
+      FirestoreSync.saveOrder(updatedTarget);
+    }
   };
 
   const handleRecordWaLog = (log: WhatsAppLog) => {
     if (log.osId) {
+      let updatedTarget: ServiceOrder | null = null;
       setOrders(prev =>
         (prev || []).map(o => {
           if (o.id === log.osId) {
-            return {
+            const u = {
               ...o,
               historicoWhatsApp: [log, ...(o.historicoWhatsApp || [])]
             };
+            updatedTarget = u;
+            return u;
           }
           return o;
         })
       );
+      if (updatedTarget) {
+        FirestoreSync.saveOrder(updatedTarget);
+      }
     }
   };
 
@@ -297,6 +376,7 @@ export function App() {
 
     // Remove from appointments roster
     setAppointments(prev => (prev || []).filter(a => a.id !== apt.id));
+    FirestoreSync.deleteAppointment(apt.id);
   };
 
   return (
@@ -459,8 +539,14 @@ export function App() {
             <AppointmentList
               appointments={appointments}
               clients={clients}
-              onSaveAppointment={apt => setAppointments(prev => [apt, ...prev])}
-              onDeleteAppointment={aptId => setAppointments(prev => prev.filter(a => a.id !== aptId))}
+              onSaveAppointment={apt => {
+                setAppointments(prev => [apt, ...prev]);
+                FirestoreSync.saveAppointment(apt);
+              }}
+              onDeleteAppointment={aptId => {
+                setAppointments(prev => prev.filter(a => a.id !== aptId));
+                FirestoreSync.deleteAppointment(aptId);
+              }}
               onConvertAppointmentToOS={handleConvertAppointmentToOS}
               onOpenWhatsAppModal={(osId, clientId) => {
                 const targetClient = clients.find(c => c.id === clientId) || null;
@@ -475,7 +561,10 @@ export function App() {
           {activeTab === 'caixa' && cashRegister && (
             <CashRegister
               cashRegister={cashRegister}
-              onSaveCashRegister={setCashRegister}
+              onSaveCashRegister={newCash => {
+                setCashRegister(newCash);
+                FirestoreSync.saveCashRegister(newCash);
+              }}
             />
           )}
 
@@ -491,7 +580,10 @@ export function App() {
           {activeTab === 'estoque' && (
             <InventoryList
               inventory={inventory}
-              onSaveInventory={setInventory}
+              onSaveInventory={newInv => {
+                setInventory(newInv);
+                FirestoreSync.saveInventory(newInv);
+              }}
             />
           )}
 
@@ -507,10 +599,22 @@ export function App() {
               templates={templates}
               waConfig={waConfig}
               businessConfig={businessConfig}
-              onSaveServices={setServices}
-              onSaveTemplates={setTemplates}
-              onSaveWaConfig={setWaConfig}
-              onSaveBusinessConfig={setBusinessConfig}
+              onSaveServices={newSrvs => {
+                setServices(newSrvs);
+                FirestoreSync.saveServices(newSrvs);
+              }}
+              onSaveTemplates={newTpls => {
+                setTemplates(newTpls);
+                FirestoreSync.saveTemplates(newTpls);
+              }}
+              onSaveWaConfig={newWa => {
+                setWaConfig(newWa);
+                FirestoreSync.saveWaConfig(newWa);
+              }}
+              onSaveBusinessConfig={newBiz => {
+                setBusinessConfig(newBiz);
+                FirestoreSync.saveBusinessConfig(newBiz);
+              }}
             />
           )}
 
@@ -548,11 +652,6 @@ export function App() {
         editingOrder={editingOS}
         preselectedClient={preselectedClient}
         preselectedVehicle={preselectedVehicle}
-        onOpenNewClient={() => {
-          setIsOSModalOpen(false);
-          setEditingClient(null);
-          setIsClientModalOpen(true);
-        }}
       />
 
       {/* Service Order Printable Receipt Modal */}
