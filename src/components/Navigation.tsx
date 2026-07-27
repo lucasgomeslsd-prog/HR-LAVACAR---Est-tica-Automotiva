@@ -180,6 +180,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'producao' as TabType, label: 'Produção', icon: Kanban, count: safeCounts.emProducaoCount },
     { id: 'os' as TabType, label: 'OSs', icon: ClipboardList, count: safeCounts.prontosCount },
     { id: 'clientes' as TabType, label: 'Clientes', icon: Users },
+    { id: 'agendamentos' as TabType, label: 'Agenda', icon: CalendarDays, count: safeCounts.agendamentosHoje },
     { id: 'caixa' as TabType, label: 'Caixa', icon: DollarSign, adminOnly: true, pinProtected: true },
     { id: 'configuracoes' as TabType, label: 'Ajustes', icon: Settings, adminOnly: true }
   ];
@@ -187,7 +188,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   return (
     <>
       {/* Desktop Sidebar Navigation */}
-      <nav className="hidden md:block bg-white border border-slate-200 rounded-2xl w-60 shrink-0 p-3 shadow-xs sticky top-20 z-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <nav className="hidden md:block bg-slate-900/90 border border-slate-800 rounded-2xl w-60 shrink-0 p-3 shadow-lg sticky top-20 z-20 max-h-[calc(100vh-6rem)] overflow-y-auto backdrop-blur-md">
         <div className="flex flex-col gap-1">
           {navItems.map(item => {
             const Icon = item.icon;
@@ -203,18 +204,18 @@ export const Navigation: React.FC<NavigationProps> = ({
                 disabled={isLockedForStaff}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer text-left w-full ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-xs'
+                    ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-900/40'
                     : isLockedForStaff
-                    ? 'text-slate-400 opacity-50 cursor-not-allowed'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'text-slate-600 opacity-40 cursor-not-allowed'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span className="truncate">{item.label}</span>
 
                 {/* Pin indicator */}
                 {item.pinProtected && (activeRole === 'admin' || activeRole === 'ADMIN') && isPinLockedForAdmin && (
-                  <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0 ml-auto" />
+                  <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0 ml-auto" />
                 )}
 
                 {item.badge}
@@ -224,43 +225,52 @@ export const Navigation: React.FC<NavigationProps> = ({
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-2xl px-1 py-1.5 flex items-center justify-around">
-        {mobileNavItems.map(item => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          const isLockedForStaff = (activeRole === 'funcionario' || activeRole === 'FUNCIONARIO') && item.adminOnly;
-          const isPinLockedForAdmin = (activeRole === 'admin' || activeRole === 'ADMIN') && item.pinProtected && !pinUnlocked;
+      {/* iOS Style Mobile Bottom Dock Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 shadow-2xl px-1.5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-around max-w-lg mx-auto">
+          {mobileNavItems.map(item => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const isLockedForStaff = (activeRole === 'funcionario' || activeRole === 'FUNCIONARIO') && item.adminOnly;
+            const isPinLockedForAdmin = (activeRole === 'admin' || activeRole === 'ADMIN') && item.pinProtected && !pinUnlocked;
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleTabClick(item.id, item.adminOnly)}
-              id={`mobile-nav-tab-${item.id}`}
-              disabled={isLockedForStaff}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
-                isActive
-                  ? 'text-blue-600 font-bold scale-105'
-                  : isLockedForStaff
-                  ? 'text-slate-300 opacity-40'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
-                {item.count && item.count > 0 ? (
-                  <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center">
-                    {item.count}
-                  </span>
-                ) : null}
-                {item.pinProtected && (activeRole === 'admin' || activeRole === 'ADMIN') && isPinLockedForAdmin && (
-                  <Lock className="w-2.5 h-2.5 text-amber-500 absolute -top-0.5 -right-1.5" />
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleTabClick(item.id, item.adminOnly)}
+                id={`mobile-nav-tab-${item.id}`}
+                disabled={isLockedForStaff}
+                className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-all relative min-w-[48px] cursor-pointer touch-manipulation ${
+                  isActive
+                    ? 'text-blue-400 font-bold scale-105'
+                    : isLockedForStaff
+                    ? 'text-slate-600 opacity-40'
+                    : 'text-slate-400 active:text-slate-200'
+                }`}
+              >
+                {/* Active Indicator Top Glow Bar */}
+                {isActive && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
                 )}
-              </div>
-              <span className="text-[10px] tracking-tight mt-0.5 truncate max-w-[56px]">{item.label}</span>
-            </button>
-          );
-        })}
+
+                <div className="relative p-1">
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400 stroke-[2.3]' : 'text-slate-400'}`} />
+                  {item.count && item.count > 0 ? (
+                    <span className="absolute -top-0.5 -right-1 bg-blue-600 text-white text-[9px] font-extrabold px-1 rounded-full min-w-[15px] h-[15px] flex items-center justify-center border border-slate-950">
+                      {item.count}
+                    </span>
+                  ) : null}
+                  {item.pinProtected && (activeRole === 'admin' || activeRole === 'ADMIN') && isPinLockedForAdmin && (
+                    <Lock className="w-2.5 h-2.5 text-amber-400 absolute -top-0.5 -right-1" />
+                  )}
+                </div>
+                <span className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[52px] ${isActive ? 'text-blue-300 font-bold' : 'text-slate-400'}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
     </>
   );

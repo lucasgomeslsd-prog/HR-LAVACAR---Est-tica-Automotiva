@@ -380,7 +380,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-blue-600 selection:text-white flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-600 selection:text-white flex flex-col">
       
       {/* Top Application Header */}
       <Header
@@ -401,7 +401,7 @@ export function App() {
       />
 
       {/* Main Container Layout */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 pb-20 md:py-6 flex flex-col md:flex-row gap-6">
+      <div className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-3 pb-28 md:py-6 flex flex-col md:flex-row gap-4 sm:gap-6">
         
         {/* Responsive Side Menu */}
         <Navigation
@@ -419,7 +419,7 @@ export function App() {
         />
 
         {/* Dynamic Workspace Tab Render */}
-        <main className="flex-1 min-w-0 pb-12 md:pb-0">
+        <main className="flex-1 min-w-0 pb-16 md:pb-0">
           
           {/* Dashboard View */}
           {activeTab === 'dashboard' && (
