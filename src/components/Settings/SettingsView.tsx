@@ -11,7 +11,15 @@ import {
   Check, 
   Lock,
   PhoneCall,
-  QrCode
+  QrCode,
+  Database,
+  Download,
+  Upload,
+  GitBranch,
+  FileCode,
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 
 import { 
@@ -21,6 +29,7 @@ import {
   BusinessConfig,
   VehicleCategory
 } from '../../types';
+import { StorageService } from '../../services/storage';
 
 interface SettingsViewProps {
   services: ServiceItem[];
@@ -43,7 +52,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSaveWaConfig,
   onSaveBusinessConfig
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'servicos' | 'whatsapp' | 'empresa' | 'seguranca'>('servicos');
+  const [activeSubTab, setActiveSubTab] = useState<'servicos' | 'whatsapp' | 'empresa' | 'seguranca' | 'banco_dados'>('servicos');
 
   // Local state for editable items
   const [localServices, setLocalServices] = useState<ServiceItem[]>(services || []);
@@ -70,6 +79,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   });
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
+
+  // Backup & Import feedback state
+  const [dbStatusMsg, setDbStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [gitRepoUrl, setGitRepoUrl] = useState('https://github.com/hrlavacar/estetica-automotiva-db');
 
   // New Service form
   const [newSrvNome, setNewSrvNome] = useState('');
@@ -148,6 +161,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     );
   };
 
+  const handleExportBackup = () => {
+    const jsonStr = StorageService.exportBackupJson();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hr_lavacar_banco_dados_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setDbStatusMsg({ type: 'success', text: 'Backup completo do banco de dados baixado com sucesso!' });
+    setTimeout(() => setDbStatusMsg(null), 4000);
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const success = StorageService.importBackupJson(content);
+      if (success) {
+        setDbStatusMsg({ type: 'success', text: 'Banco de dados restaurado com sucesso! Recarregando aplicação...' });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } else {
+        setDbStatusMsg({ type: 'error', text: 'Falha ao importar arquivo JSON. Verifique se a estrutura está correta.' });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearDatabase = () => {
+    if (confirm('Atenção: Tem certeza de que deseja apagar todos os dados do banco local? Esta ação limpa clientes, OSs e histórico armazenados.')) {
+      StorageService.resetAllData();
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       
@@ -178,7 +231,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           { id: 'servicos', label: 'Catálogo de Serviços & Tabela de Preços', icon: Sparkles },
           { id: 'whatsapp', label: 'Modelos de Mensagem WhatsApp', icon: MessageSquare },
           { id: 'empresa', label: 'Dados da Empresa & PIX', icon: Building2 },
-          { id: 'seguranca', label: 'PIN de Segurança 6 Dígitos', icon: ShieldCheck }
+          { id: 'seguranca', label: 'PIN de Segurança 6 Dígitos', icon: ShieldCheck },
+          { id: 'banco_dados', label: 'Banco de Dados & GitHub', icon: Database }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -460,6 +514,140 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-base text-cyan-400 font-mono font-bold text-center tracking-widest"
             />
           </div>
+        </div>
+      )}
+
+      {/* Subtab 5: Banco de Dados & GitHub */}
+      {activeSubTab === 'banco_dados' && (
+        <div className="space-y-6 text-xs">
+          
+          {/* Feedback Status Message */}
+          {dbStatusMsg && (
+            <div className={`p-4 rounded-xl border flex items-center gap-3 animate-fade-in ${
+              dbStatusMsg.type === 'success' 
+                ? 'bg-emerald-950/80 border-emerald-700 text-emerald-200' 
+                : 'bg-rose-950/80 border-rose-700 text-rose-200'
+            }`}>
+              {dbStatusMsg.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+              )}
+              <span className="font-bold">{dbStatusMsg.text}</span>
+            </div>
+          )}
+
+          {/* Backup & Restore Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Export JSON Backup */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 text-slate-100 font-bold text-sm">
+                <Download className="w-5 h-5 text-cyan-400" />
+                <span>Exportar Backup do Banco (JSON)</span>
+              </div>
+              <p className="text-slate-400">
+                Baixe uma cópia de segurança completa com todos os Clientes, Ordens de Serviço, Estoque e Configurações salvas no sistema.
+              </p>
+              <button
+                type="button"
+                onClick={handleExportBackup}
+                className="w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/30 transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Baixar Backup Completo (.JSON)</span>
+              </button>
+            </div>
+
+            {/* Import JSON Backup */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 text-slate-100 font-bold text-sm">
+                <Upload className="w-5 h-5 text-emerald-400" />
+                <span>Restaurar / Importar Backup (JSON)</span>
+              </div>
+              <p className="text-slate-400">
+                Selecione um arquivo de backup <code className="text-emerald-300 font-mono">.json</code> baixado anteriormente para restaurar a base de dados completa.
+              </p>
+              <label className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-700/60 font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all">
+                <Upload className="w-4 h-4" />
+                <span>Selecionar Arquivo Backup (.JSON)</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleImportBackup}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+          </div>
+
+          {/* GitHub Integration Info Panel */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="flex items-center gap-2 text-slate-100 font-bold text-sm">
+              <GitBranch className="w-5 h-5 text-purple-400" />
+              <span>Sincronização & Repositório GitHub</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              O sistema <strong>HR LAVACAR</strong> executa localmente no seu navegador e pode ser hospedado e sincronizado diretamente em qualquer repositório no <strong>GitHub</strong>.
+            </p>
+
+            <div className="space-y-2">
+              <label className="block text-slate-300 font-semibold">URL do Repositório GitHub do Projeto</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={gitRepoUrl}
+                  onChange={e => setGitRepoUrl(e.target.value)}
+                  placeholder="https://github.com/usuario/repositorio"
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-200 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(gitRepoUrl);
+                    setDbStatusMsg({ type: 'success', text: 'Link do GitHub copiado para a área de transferência!' });
+                    setTimeout(() => setDbStatusMsg(null), 3000);
+                  }}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 cursor-pointer"
+                >
+                  Copiar Link
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="font-bold text-slate-200 flex items-center gap-2">
+                <FileCode className="w-4 h-4 text-cyan-400" />
+                <span>Instruções para salvar dados no GitHub:</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-slate-400 pl-1">
+                <li>Exporte o backup em formato JSON no botão acima.</li>
+                <li>Adicione o arquivo <code className="text-cyan-300 font-mono">banco_dados.json</code> no diretório <code className="text-cyan-300 font-mono">/src/data/</code> do repositório no GitHub.</li>
+                <li>Faça commit e push para atualizar o repositório principal no GitHub.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* Danger Zone: Clear DB */}
+          <div className="bg-slate-900/90 border border-rose-900/50 rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+              <AlertTriangle className="w-5 h-5 text-rose-500" />
+              <span>Zona de Perigo: Limpar Banco de Dados</span>
+            </div>
+            <p className="text-slate-400">
+              Esta ação apagará todo o histórico local armazenado no seu navegador. Certifique-se de ter um backup antes de prosseguir.
+            </p>
+            <button
+              type="button"
+              onClick={handleClearDatabase}
+              className="py-2.5 px-4 bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-800 font-bold rounded-xl flex items-center gap-2 cursor-pointer transition-all"
+            >
+              <Trash2 className="w-4 h-4 text-rose-400" />
+              <span>Limpar Todos os Dados Locais</span>
+            </button>
+          </div>
+
         </div>
       )}
 

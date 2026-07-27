@@ -143,6 +143,40 @@ export const StorageService = {
     localStorage.clear();
   },
 
+  // Export full JSON backup
+  exportBackupJson: (): string => {
+    const backupObj = {
+      app: 'HR_LAVACAR',
+      exportedAt: new Date().toISOString(),
+      version: '2.0',
+      data: StorageService.loadAllData()
+    };
+    return JSON.stringify(backupObj, null, 2);
+  },
+
+  // Import full JSON backup
+  importBackupJson: (jsonString: string): boolean => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const data = parsed.data || parsed;
+
+      if (data.clients) StorageService.saveClients(data.clients);
+      if (data.services) StorageService.saveServices(data.services);
+      if (data.orders) StorageService.saveOrders(data.orders);
+      if (data.appointments) StorageService.saveAppointments(data.appointments);
+      if (data.templates) StorageService.saveTemplates(data.templates);
+      if (data.waConfig) StorageService.saveWaConfig(data.waConfig);
+      if (data.businessConfig) StorageService.saveBusinessConfig(data.businessConfig);
+      if (data.inventory) StorageService.saveInventory(data.inventory);
+      if (data.cashRegister) StorageService.saveCashRegister(data.cashRegister);
+
+      return true;
+    } catch (err) {
+      console.error('Error importing backup:', err);
+      return false;
+    }
+  },
+
   // Helper to load all stored application states at once
   loadAllData: () => {
     return {
