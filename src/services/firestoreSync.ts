@@ -238,5 +238,13 @@ export const FirestoreSync = {
     } catch (err) {
       console.error('Firestore saveCashRegister error:', err);
     }
+  },
+
+  saveCashHistoryRecord: async (cashRegister: DailyCashRegister) => {
+    try {
+      await setDoc(doc(db, 'cashHistory', cashRegister.id), sanitizeForFirestore(cashRegister));
+    } catch (err) {
+      console.error('Firestore saveCashHistoryRecord error:', err);
+    }
   }
 };

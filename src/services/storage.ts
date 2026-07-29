@@ -35,6 +35,7 @@ const KEYS = {
   BUSINESS_CONFIG: 'hr_lavacar_business_config_v2',
   INVENTORY: 'hr_lavacar_inventory_v2',
   CASH_REGISTER: 'hr_lavacar_cash_register_v2',
+  CASH_HISTORY: 'hr_lavacar_cash_history_v2',
   ACTIVE_ROLE: 'hr_lavacar_active_role_v2',
   PIN_UNLOCKED: 'hr_lavacar_pin_unlocked_session_v2'
 };
@@ -119,6 +120,15 @@ export const StorageService = {
   },
   saveCashRegister: (cashRegister: DailyCashRegister) => {
     localStorage.setItem(KEYS.CASH_REGISTER, JSON.stringify(cashRegister));
+  },
+
+  // Cash History
+  getCashHistory: (): DailyCashRegister[] => {
+    const data = localStorage.getItem(KEYS.CASH_HISTORY);
+    return data ? JSON.parse(data) : [];
+  },
+  saveCashHistory: (history: DailyCashRegister[]) => {
+    localStorage.setItem(KEYS.CASH_HISTORY, JSON.stringify(history));
   },
 
   // Role

@@ -638,10 +638,17 @@ export function App() {
           {activeTab === 'caixa' && cashRegister && (
             <CashRegister
               cashRegister={cashRegister}
-              onSaveCashRegister={newCash => {
+              onSaveCashRegister={(newCash, closedRecord) => {
                 setCashRegister(newCash);
                 StorageService.saveCashRegister(newCash);
                 FirestoreSync.saveCashRegister(newCash);
+
+                if (closedRecord) {
+                  const history = StorageService.getCashHistory();
+                  const updatedHistory = [closedRecord, ...history.filter(h => h.id !== closedRecord.id)];
+                  StorageService.saveCashHistory(updatedHistory);
+                  FirestoreSync.saveCashHistoryRecord(closedRecord);
+                }
               }}
             />
           )}
