@@ -9,6 +9,7 @@ import {
   Vehicle, 
   Appointment, 
   DailyCashRegister, 
+  CashTransaction,
   InventoryItem, 
   ServiceItem, 
   WhatsAppTemplate, 
@@ -250,6 +251,66 @@ export function App() {
     FirestoreSync.deleteClient(clientId);
   };
 
+  // --- Central Auto-Sync Helper for Cash Register ---
+  const syncCashRegisterForOS = (order: ServiceOrder, isDelete: boolean = false) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    setCashRegister(prevCash => {
+      const activeCash: DailyCashRegister = prevCash || {
+        id: `cash-${todayStr.replace(/-/g, '')}`,
+        data: todayStr,
+        status: 'ABERTO',
+        saldoInicial: 0,
+        dataAbertura: new Date().toISOString(),
+        usuarioAbertura: 'Caixa Automático HR LAVACAR',
+        movimentacoes: []
+      };
+
+      let movimentacoes = [...(activeCash.movimentacoes || [])];
+
+      if (isDelete || order.status === 'CANCELADA') {
+        movimentacoes = movimentacoes.filter(m => m.osId !== order.id && m.id !== `mvt-os-${order.id}`);
+      } else {
+        const isPaid = order.statusPagamento === 'PAGO' || order.statusPagamento === 'PAGO_PARCIAL';
+        const isCompleted = order.status === 'PRONTO' || order.status === 'ENTREGUE';
+
+        if (isPaid || isCompleted || (order.valorFinal > 0 && order.status !== 'AGUARDANDO')) {
+          const existingIndex = movimentacoes.findIndex(m => m.osId === order.id || m.id === `mvt-os-${order.id}`);
+
+          const txData: CashTransaction = {
+            id: `mvt-os-${order.id}`,
+            osId: order.id,
+            tipo: 'ENTRADA',
+            categoria: 'SERVICO',
+            descricao: `OS #${order.numeroOS} - ${order.clientNome} (${order.vehiclePlaca || 'S/ Placa'})`,
+            valor: Math.max(0, order.valorFinal || 0),
+            formaPagamento: order.formaPagamento || 'PIX',
+            dataHora: existingIndex >= 0 ? movimentacoes[existingIndex].dataHora : new Date().toISOString(),
+            usuario: order.responsavelLavagem || 'Sistema OS'
+          };
+
+          if (existingIndex >= 0) {
+            movimentacoes[existingIndex] = txData;
+          } else {
+            movimentacoes.unshift(txData);
+          }
+        } else {
+          movimentacoes = movimentacoes.filter(m => m.osId !== order.id && m.id !== `mvt-os-${order.id}`);
+        }
+      }
+
+      const updatedCash: DailyCashRegister = {
+        ...activeCash,
+        data: todayStr,
+        movimentacoes
+      };
+
+      StorageService.saveCashRegister(updatedCash);
+      FirestoreSync.saveCashRegister(updatedCash);
+
+      return updatedCash;
+    });
+  };
+
   // --- Handlers for Service Orders (OS) ---
   const handleSaveOS = (order: ServiceOrder, openChecklistAfter: boolean) => {
     let updated: ServiceOrder[];
@@ -265,6 +326,9 @@ export function App() {
     setOrders(updated);
     FirestoreSync.saveOrder(order);
 
+    // Auto-synchronize with Cash Register
+    syncCashRegisterForOS(order, false);
+
     if (openChecklistAfter) {
       setSelectedChecklistOS(order);
       setIsChecklistModalOpen(true);
@@ -277,8 +341,13 @@ export function App() {
   };
 
   const handleDeleteOS = (orderId: string) => {
+    const targetOrder = (orders || []).find(o => o.id === orderId);
     setOrders(prev => (prev || []).filter(o => o.id !== orderId));
     FirestoreSync.deleteOrder(orderId);
+
+    if (targetOrder) {
+      syncCashRegisterForOS(targetOrder, true);
+    }
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: OSStatus) => {
@@ -306,6 +375,7 @@ export function App() {
     setOrders(updated);
     if (updatedTarget) {
       FirestoreSync.saveOrder(updatedTarget);
+      syncCashRegisterForOS(updatedTarget, false);
     }
   };
 
@@ -323,6 +393,7 @@ export function App() {
     );
     if (updatedTarget) {
       FirestoreSync.saveOrder(updatedTarget);
+      syncCashRegisterForOS(updatedTarget, false);
     }
   };
 
@@ -369,14 +440,20 @@ export function App() {
   const handleConvertAppointmentToOS = (apt: Appointment) => {
     const safeClients = clients || [];
     const client = safeClients.find(c => c.id === apt.clientId);
-    const vehicle = client?.veiculos?.find(v => v.placa === apt.vehiclePlaca);
+    const vehicle = client?.veiculos?.find(v => v.placa === apt.vehiclePlaca) || client?.veiculos?.[0];
 
     setEditingOS(null);
+    setPreselectedClient(client || null);
+    setPreselectedVehicle(vehicle || null);
     setIsOSModalOpen(true);
 
-    // Remove from appointments roster
-    setAppointments(prev => (prev || []).filter(a => a.id !== apt.id));
-    FirestoreSync.deleteAppointment(apt.id);
+    // Update status to CONVERTIDO_EM_OS
+    const updatedApt: Appointment = {
+      ...apt,
+      status: 'CONVERTIDO_EM_OS'
+    };
+    setAppointments(prev => (prev || []).map(a => a.id === apt.id ? updatedApt : a));
+    FirestoreSync.saveAppointment(updatedApt);
   };
 
   return (
@@ -563,6 +640,7 @@ export function App() {
               cashRegister={cashRegister}
               onSaveCashRegister={newCash => {
                 setCashRegister(newCash);
+                StorageService.saveCashRegister(newCash);
                 FirestoreSync.saveCashRegister(newCash);
               }}
             />

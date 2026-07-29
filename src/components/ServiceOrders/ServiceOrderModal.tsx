@@ -93,7 +93,17 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
 
     setSelectedVehicleId(targetVehicle?.id || '');
 
-    setSelectedServices(editingOrder?.servicos ? [...editingOrder.servicos] : []);
+    setSelectedServices(
+      editingOrder?.servicos 
+        ? [...editingOrder.servicos] 
+        : safeServicesCatalog.length > 0 
+          ? [{
+              serviceId: safeServicesCatalog[0].id,
+              nome: safeServicesCatalog[0].nome,
+              valor: safeServicesCatalog[0].precos[targetVehicle?.categoria || 'sedan'] || safeServicesCatalog[0].precos.sedan
+            }]
+          : []
+    );
     setDesconto(editingOrder?.desconto || 0);
     setResponsavelLavagem(editingOrder?.responsavelLavagem || 'Mateus Lavador');
     setObservacoes(editingOrder?.observacoes || '');
@@ -178,7 +188,7 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
       valorFinal,
       status,
       statusPagamento,
-      formaPagamento: statusPagamento === 'PENDENTE' ? undefined : formaPagamento,
+      formaPagamento: formaPagamento || 'PIX',
       dataAbertura: editingOrder?.dataAbertura || new Date().toISOString(),
       previsaoEntrega,
       responsavelLavagem,
