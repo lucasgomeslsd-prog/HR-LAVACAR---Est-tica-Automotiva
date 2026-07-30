@@ -22,7 +22,7 @@ interface AppointmentListProps {
   onSaveAppointment: (apt: Appointment) => void;
   onDeleteAppointment: (aptId: string) => void;
   onConvertAppointmentToOS: (apt: Appointment) => void;
-  onOpenWhatsAppModal: (osId?: string, clientId?: string) => void;
+  onOpenWhatsAppModal: (osId?: string, clientId?: string, appointment?: Appointment) => void;
 }
 
 export const AppointmentList: React.FC<AppointmentListProps> = ({
@@ -46,6 +46,7 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
   const [servicosDesejados, setServicosDesejados] = useState('Lavagem Detalhada + Pretinho');
   const [observacoes, setObservacoes] = useState('');
   const [status, setStatus] = useState<'AGENDADO' | 'CONFIRMADO' | 'CANCELADO'>('CONFIRMADO');
+  const [sendWaNotification, setSendWaNotification] = useState(true);
 
   // Helper to format date for datetime-local input
   const getDefaultDateTime = () => {
@@ -70,6 +71,7 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
     setServicosDesejados('Lavagem Detalhada + Pretinho');
     setObservacoes('');
     setStatus('CONFIRMADO');
+    setSendWaNotification(true);
     setIsModalOpen(true);
   };
 
@@ -84,6 +86,7 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
     setServicosDesejados((apt.servicosDesejados || []).join(', ') || 'Lavagem Detalhada');
     setObservacoes(apt.observacoes || '');
     setStatus(apt.status === 'CANCELADO' ? 'CANCELADO' : apt.status === 'AGENDADO' ? 'AGENDADO' : 'CONFIRMADO');
+    setSendWaNotification(false);
     setIsModalOpen(true);
   };
 
@@ -134,6 +137,10 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
 
     onSaveAppointment(aptToSave);
     setIsModalOpen(false);
+
+    if (sendWaNotification) {
+      onOpenWhatsAppModal(undefined, aptToSave.clientId, aptToSave);
+    }
   };
 
   return (
@@ -231,8 +238,9 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
 
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
                 <button
-                  onClick={() => onOpenWhatsAppModal(undefined, apt.clientId)}
+                  onClick={() => onOpenWhatsAppModal(undefined, apt.clientId, apt)}
                   className="px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                  title="Enviar mensagem de agendamento no WhatsApp"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Avisar WA</span>
@@ -348,6 +356,20 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
                   placeholder="Ex: Cliente virá às 14h, pediu cuidado especial no estofado"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 resize-none"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-slate-950 border border-emerald-900/60 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="sendWaNotification"
+                  checked={sendWaNotification}
+                  onChange={e => setSendWaNotification(e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500 cursor-pointer"
+                />
+                <label htmlFor="sendWaNotification" className="text-xs font-bold text-emerald-400 cursor-pointer flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Enviar mensagem de confirmação no WhatsApp ao salvar</span>
+                </label>
               </div>
 
               <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">

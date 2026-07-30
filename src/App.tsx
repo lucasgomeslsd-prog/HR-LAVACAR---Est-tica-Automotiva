@@ -17,6 +17,7 @@ import {
   BusinessConfig,
   OSStatus,
   PaymentStatus,
+  PaymentMethod,
   WhatsAppLog
 } from './types';
 
@@ -85,6 +86,7 @@ export function App() {
   const [isWhatsAppSendModalOpen, setIsWhatsAppSendModalOpen] = useState(false);
   const [selectedWaOS, setSelectedWaOS] = useState<ServiceOrder | null>(null);
   const [selectedWaClient, setSelectedWaClient] = useState<Client | null>(null);
+  const [selectedWaAppointment, setSelectedWaAppointment] = useState<Appointment | null>(null);
 
   // Load Initial Data and start Firestore Real-Time Cloud Sync on Mount
   useEffect(() => {
@@ -267,33 +269,51 @@ export function App() {
 
       let movimentacoes = [...(activeCash.movimentacoes || [])];
 
-      if (isDelete || order.status === 'CANCELADA') {
+      const isCancelled = isDelete || order.status === 'CANCELADA' || order.statusPagamento === 'CANCELADO';
+
+      if (isCancelled) {
         movimentacoes = movimentacoes.filter(m => m.osId !== order.id && m.id !== `mvt-os-${order.id}`);
       } else {
-        const isPaid = order.statusPagamento === 'PAGO' || order.statusPagamento === 'PAGO_PARCIAL';
-        const isCompleted = order.status === 'PRONTO' || order.status === 'ENTREGUE';
+        // Enviar valores para o Caixa SOMENTE quando houver recebimento financeiro:
+        // - Pago (PAGO)
+        // - Parcialmente Pago (PAGO_PARCIAL)
+        // NÃO entram no Caixa: Pendente, Pagamento a Prazo, Troca em Serviços, Cortesia, Cancelado
+        const isPaidFull = order.statusPagamento === 'PAGO';
+        const isPaidParcial = order.statusPagamento === 'PAGO_PARCIAL';
 
-        if (isPaid || isCompleted || (order.valorFinal > 0 && order.status !== 'AGUARDANDO')) {
-          const existingIndex = movimentacoes.findIndex(m => m.osId === order.id || m.id === `mvt-os-${order.id}`);
+        if (isPaidFull || isPaidParcial) {
+          let receivedAmount = 0;
+          if (isPaidFull) {
+            receivedAmount = order.valorPago !== undefined && order.valorPago > 0 ? order.valorPago : (order.valorFinal || 0);
+          } else if (isPaidParcial) {
+            receivedAmount = order.valorPago || 0;
+          }
 
-          const txData: CashTransaction = {
-            id: `mvt-os-${order.id}`,
-            osId: order.id,
-            tipo: 'ENTRADA',
-            categoria: 'SERVICO',
-            descricao: `OS #${order.numeroOS} - ${order.clientNome} (${order.vehiclePlaca || 'S/ Placa'})`,
-            valor: Math.max(0, order.valorFinal || 0),
-            formaPagamento: order.formaPagamento || 'PIX',
-            dataHora: existingIndex >= 0 ? movimentacoes[existingIndex].dataHora : new Date().toISOString(),
-            usuario: order.responsavelLavagem || 'Sistema OS'
-          };
+          if (receivedAmount > 0) {
+            const existingIndex = movimentacoes.findIndex(m => m.osId === order.id || m.id === `mvt-os-${order.id}`);
 
-          if (existingIndex >= 0) {
-            movimentacoes[existingIndex] = txData;
+            const txData: CashTransaction = {
+              id: `mvt-os-${order.id}`,
+              osId: order.id,
+              tipo: 'ENTRADA',
+              categoria: 'SERVICO',
+              descricao: `OS #${order.numeroOS} - ${order.clientNome} (${order.vehiclePlaca || 'S/ Placa'})`,
+              valor: receivedAmount,
+              formaPagamento: order.formaPagamento || 'PIX',
+              dataHora: order.dataPagamento || (existingIndex >= 0 ? movimentacoes[existingIndex].dataHora : new Date().toISOString()),
+              usuario: order.recebidoPor || order.responsavelLavagem || 'Atendente'
+            };
+
+            if (existingIndex >= 0) {
+              movimentacoes[existingIndex] = txData;
+            } else {
+              movimentacoes.unshift(txData);
+            }
           } else {
-            movimentacoes.unshift(txData);
+            movimentacoes = movimentacoes.filter(m => m.osId !== order.id && m.id !== `mvt-os-${order.id}`);
           }
         } else {
+          // Remove from Caixa if status is Pendente, Pagamento a Prazo, Troca em Serviços, Cortesia, Cancelado
           movimentacoes = movimentacoes.filter(m => m.osId !== order.id && m.id !== `mvt-os-${order.id}`);
         }
       }
@@ -379,12 +399,35 @@ export function App() {
     }
   };
 
-  const handleUpdatePaymentStatus = (orderId: string, newStatus: PaymentStatus) => {
+  const handleUpdatePaymentStatus = (
+    orderId: string, 
+    newStatus: PaymentStatus, 
+    newMethod?: PaymentMethod, 
+    valorPago?: number,
+    recebidoPor?: string
+  ) => {
     let updatedTarget: ServiceOrder | null = null;
+    const nowIso = new Date().toISOString();
     setOrders(prev =>
       (prev || []).map(o => {
         if (o.id === orderId) {
-          const u = { ...o, statusPagamento: newStatus };
+          let calculatedValorPago = o.valorPago;
+          if (newStatus === 'PAGO') {
+            calculatedValorPago = valorPago !== undefined ? valorPago : o.valorFinal;
+          } else if (newStatus === 'PAGO_PARCIAL') {
+            calculatedValorPago = valorPago !== undefined ? valorPago : (o.valorPago || 0);
+          } else {
+            calculatedValorPago = 0;
+          }
+
+          const u: ServiceOrder = { 
+            ...o, 
+            statusPagamento: newStatus,
+            formaPagamento: newMethod || o.formaPagamento || 'PIX',
+            valorPago: calculatedValorPago,
+            dataPagamento: (newStatus === 'PAGO' || newStatus === 'PAGO_PARCIAL') ? (o.dataPagamento || nowIso) : undefined,
+            recebidoPor: (newStatus === 'PAGO' || newStatus === 'PAGO_PARCIAL') ? (recebidoPor || o.recebidoPor || 'Atendente') : undefined
+          };
           updatedTarget = u;
           return u;
         }
@@ -542,6 +585,7 @@ export function App() {
               }}
               onDeleteClient={handleDeleteClient}
               onOpenWhatsAppModal={(osId, clientId) => {
+                setSelectedWaAppointment(null);
                 if (clientId) {
                   const client = clients.find(c => c.id === clientId);
                   setSelectedWaClient(client || null);
@@ -579,6 +623,7 @@ export function App() {
                 const targetOS = orders.find(o => o.id === osId) || null;
                 setSelectedWaOS(targetOS);
                 setSelectedWaClient(null);
+                setSelectedWaAppointment(null);
                 setIsWhatsAppSendModalOpen(true);
               }}
               onOpenChecklist={order => {
@@ -606,6 +651,7 @@ export function App() {
               onOpenWhatsApp={order => {
                 setSelectedWaOS(order);
                 setSelectedWaClient(null);
+                setSelectedWaAppointment(null);
                 setIsWhatsAppSendModalOpen(true);
               }}
             />
@@ -625,10 +671,11 @@ export function App() {
                 FirestoreSync.deleteAppointment(aptId);
               }}
               onConvertAppointmentToOS={handleConvertAppointmentToOS}
-              onOpenWhatsAppModal={(osId, clientId) => {
+              onOpenWhatsAppModal={(osId, clientId, appointment) => {
                 const targetClient = clients.find(c => c.id === clientId) || null;
                 setSelectedWaClient(targetClient);
                 setSelectedWaOS(null);
+                setSelectedWaAppointment(appointment || null);
                 setIsWhatsAppSendModalOpen(true);
               }}
             />
@@ -766,19 +813,23 @@ export function App() {
         />
       )}
 
-      {/* WhatsApp Dispatches & Templates Modal */}
-      {businessConfig && waConfig && (
-        <WhatsAppSendModal
-          isOpen={isWhatsAppSendModalOpen}
-          onClose={() => setIsWhatsAppSendModalOpen(false)}
-          order={selectedWaOS}
-          client={selectedWaClient}
-          templates={templates}
-          waConfig={waConfig}
-          businessConfig={businessConfig}
-          onRecordLog={handleRecordWaLog}
-        />
-      )}
+          {/* WhatsApp Dispatches & Templates Modal */}
+          {businessConfig && waConfig && (
+            <WhatsAppSendModal
+              isOpen={isWhatsAppSendModalOpen}
+              onClose={() => {
+                setIsWhatsAppSendModalOpen(false);
+                setSelectedWaAppointment(null);
+              }}
+              order={selectedWaOS}
+              client={selectedWaClient}
+              appointment={selectedWaAppointment}
+              templates={templates}
+              waConfig={waConfig}
+              businessConfig={businessConfig}
+              onRecordLog={handleRecordWaLog}
+            />
+          )}
 
     </div>
   );

@@ -173,14 +173,27 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
                   <select
                     value={order.statusPagamento}
                     onChange={e => onUpdatePaymentStatus(order.id, e.target.value as PaymentStatus)}
-                    className={`border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none ${
+                    className={`border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer ${
                       order.statusPagamento === 'PAGO'
                         ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                        : order.statusPagamento === 'PAGO_PARCIAL'
+                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        : order.statusPagamento === 'CORTESIA'
+                        ? 'bg-purple-50 text-purple-800 border-purple-200'
+                        : order.statusPagamento === 'TROCA_SERVICOS'
+                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                        : order.statusPagamento === 'PAGAMENTO_A_PRAZO'
+                        ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                        : 'bg-rose-50 text-rose-800 border-rose-200'
                     }`}
                   >
-                    <option value="PENDENTE">🔴 Pgto Pendente</option>
-                    <option value="PAGO">🟢 Pgto Efetuado</option>
+                    <option value="PENDENTE">🔴 Pendente</option>
+                    <option value="PAGO">🟢 Pago</option>
+                    <option value="PAGAMENTO_A_PRAZO">📅 A Prazo</option>
+                    <option value="TROCA_SERVICOS">🔄 Troca Serviços</option>
+                    <option value="CORTESIA">🎁 Cortesia</option>
+                    <option value="PAGO_PARCIAL">🟡 Parcial</option>
+                    <option value="CANCELADO">❌ Cancelado</option>
                   </select>
                 </div>
               </div>
@@ -210,6 +223,10 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
                     <span>{new Date(order.dataAbertura).toLocaleDateString('pt-BR')}</span>
                   </div>
                   <div className="flex justify-between text-slate-500">
+                    <span>Forma Pgto:</span>
+                    <span className="font-bold text-slate-700">{order.formaPagamento || 'PIX'}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
                     <span>Responsável:</span>
                     <span className="font-bold text-slate-800">{order.responsavelLavagem}</span>
                   </div>
@@ -217,6 +234,24 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
                     <span>TOTAL OS:</span>
                     <span className="font-mono">R$ {order.valorFinal.toFixed(2)}</span>
                   </div>
+                  {order.statusPagamento === 'PAGO_PARCIAL' && (
+                    <div className="flex justify-between text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      <span>Recebido em Caixa:</span>
+                      <span className="font-mono">R$ {(order.valorPago || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {['PENDENTE', 'PAGAMENTO_A_PRAZO'].includes(order.statusPagamento) && (
+                    <div className="flex justify-between text-[10px] font-medium text-slate-500 italic">
+                      <span>Caixa:</span>
+                      <span>R$ 0,00 (Não entra no Caixa)</span>
+                    </div>
+                  )}
+                  {['TROCA_SERVICOS', 'CORTESIA', 'CANCELADO'].includes(order.statusPagamento) && (
+                    <div className="flex justify-between text-[10px] font-medium text-purple-600 italic">
+                      <span>Caixa:</span>
+                      <span>R$ 0,00 ({order.statusPagamento})</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

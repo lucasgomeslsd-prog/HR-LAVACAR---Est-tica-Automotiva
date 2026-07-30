@@ -61,8 +61,24 @@ export type OSStatus =
   | 'ENTREGUE' 
   | 'CANCELADA';
 
-export type PaymentStatus = 'PENDENTE' | 'PAGO_PARCIAL' | 'PAGO';
-export type PaymentMethod = 'PIX' | 'CARTAO_CREDITO' | 'CARTAO_DEBITO' | 'DINHEIRO';
+export type PaymentStatus = 
+  | 'PENDENTE' 
+  | 'PAGO' 
+  | 'PAGAMENTO_A_PRAZO' 
+  | 'TROCA_SERVICOS' 
+  | 'CORTESIA' 
+  | 'CANCELADO' 
+  | 'PAGO_PARCIAL';
+
+export type PaymentMethod = 
+  | 'DINHEIRO' 
+  | 'PIX' 
+  | 'CARTAO_DEBITO' 
+  | 'CARTAO_CREDITO' 
+  | 'TRANSFERENCIA_BANCARIA' 
+  | 'PAGAMENTO_A_PRAZO' 
+  | 'TROCA_SERVICOS' 
+  | 'CORTESIA';
 
 export interface ChecklistDamagePoint {
   id: string;
@@ -104,7 +120,7 @@ export interface WhatsAppLog {
   clientNome: string;
   whatsappNumber: string;
   dataEnvio: string;
-  tipoTemplate: 'boas_vindas' | 'confirmacao_os' | 'orcamento' | 'carro_pronto' | 'comprovante' | 'personalizado';
+  tipoTemplate: 'boas_vindas' | 'confirmacao_os' | 'orcamento' | 'carro_pronto' | 'comprovante' | 'agendamento' | 'personalizado';
   mensagemTexto: string;
   enviadoPor: string; // User/Staff name
   statusEnvio: 'ENVIADO' | 'ENTREGUE' | 'LIDO' | 'ERRO';
@@ -136,6 +152,9 @@ export interface ServiceOrder {
   status: OSStatus;
   statusPagamento: PaymentStatus;
   formaPagamento?: PaymentMethod;
+  valorPago?: number;
+  dataPagamento?: string;
+  recebidoPor?: string;
   
   dataAbertura: string;
   previsaoEntrega: string;
@@ -203,7 +222,7 @@ export interface InventoryItem {
 
 export interface WhatsAppTemplate {
   id: string;
-  tipo: 'boas_vindas' | 'confirmacao_os' | 'orcamento' | 'carro_pronto' | 'comprovante';
+  tipo: 'boas_vindas' | 'confirmacao_os' | 'orcamento' | 'carro_pronto' | 'comprovante' | 'agendamento';
   titulo: string;
   conteudo: string;
 }

@@ -63,6 +63,7 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
   const [status, setStatus] = useState<OSStatus>('AGUARDANDO');
   const [statusPagamento, setStatusPagamento] = useState<PaymentStatus>('PENDENTE');
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod | undefined>('PIX');
+  const [valorPago, setValorPago] = useState<number>(0);
   const [previsaoEntrega, setPrevisaoEntrega] = useState<string>('');
   const [openChecklist, setOpenChecklist] = useState<boolean>(true);
 
@@ -110,6 +111,7 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
     setStatus(editingOrder?.status || 'AGUARDANDO');
     setStatusPagamento(editingOrder?.statusPagamento || 'PENDENTE');
     setFormaPagamento(editingOrder?.formaPagamento || 'PIX');
+    setValorPago(editingOrder?.valorPago !== undefined ? editingOrder.valorPago : editingOrder?.valorFinal || 0);
 
     const now = new Date();
     now.setHours(now.getHours() + 3);
@@ -171,6 +173,9 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
 
     const orderNumber = editingOrder?.numeroOS || `OS-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const isPaidOrPartial = statusPagamento === 'PAGO' || statusPagamento === 'PAGO_PARCIAL';
+    const finalValorPago = statusPagamento === 'PAGO' ? valorFinal : statusPagamento === 'PAGO_PARCIAL' ? valorPago : 0;
+
     const newOrder: ServiceOrder = {
       id: editingOrder?.id || `os-${Date.now()}`,
       numeroOS: orderNumber,
@@ -189,6 +194,9 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
       status,
       statusPagamento,
       formaPagamento: formaPagamento || 'PIX',
+      valorPago: finalValorPago,
+      dataPagamento: isPaidOrPartial ? (editingOrder?.dataPagamento || new Date().toISOString()) : undefined,
+      recebidoPor: isPaidOrPartial ? (editingOrder?.recebidoPor || responsavelLavagem || 'Atendente') : undefined,
       dataAbertura: editingOrder?.dataAbertura || new Date().toISOString(),
       previsaoEntrega,
       responsavelLavagem,
@@ -416,11 +424,22 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
               </label>
               <select
                 value={statusPagamento}
-                onChange={e => setStatusPagamento(e.target.value as PaymentStatus)}
+                onChange={e => {
+                  const newSt = e.target.value as PaymentStatus;
+                  setStatusPagamento(newSt);
+                  if (newSt === 'PAGO' && valorPago <= 0) {
+                    setValorPago(valorFinal);
+                  }
+                }}
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
               >
                 <option value="PENDENTE">🔴 Pendente</option>
-                <option value="PAGO">🟢 Pago Integralmente</option>
+                <option value="PAGO">🟢 Pago</option>
+                <option value="PAGAMENTO_A_PRAZO">📅 Pagamento a Prazo</option>
+                <option value="TROCA_SERVICOS">🔄 Troca em Serviços</option>
+                <option value="CORTESIA">🎁 Cortesia</option>
+                <option value="PAGO_PARCIAL">🟡 Parcialmente Pago</option>
+                <option value="CANCELADO">❌ Cancelado</option>
               </select>
             </div>
 
@@ -433,13 +452,43 @@ export const ServiceOrderModal: React.FC<ServiceOrderModalProps> = ({
                 onChange={e => setFormaPagamento(e.target.value as PaymentMethod)}
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
               >
-                <option value="PIX">PIX</option>
-                <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                <option value="CARTAO_DEBITO">Cartão de Débito</option>
                 <option value="DINHEIRO">Dinheiro</option>
+                <option value="PIX">PIX</option>
+                <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                <option value="TRANSFERENCIA_BANCARIA">Transferência Bancária</option>
+                <option value="PAGAMENTO_A_PRAZO">Pagamento a Prazo</option>
+                <option value="TROCA_SERVICOS">Troca em Serviços</option>
+                <option value="CORTESIA">Cortesia</option>
               </select>
             </div>
           </div>
+
+          {/* Partial payment input box if PAGO_PARCIAL */}
+          {statusPagamento === 'PAGO_PARCIAL' && (
+            <div className="p-3.5 bg-amber-950/40 border border-amber-800/60 rounded-xl space-y-2 animate-fade-in">
+              <label className="block text-xs font-bold text-amber-300">
+                Valor Recebido no Momento (R$) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={valorFinal}
+                value={valorPago || ''}
+                onChange={e => setValorPago(Number(e.target.value))}
+                placeholder="Informe o valor já pago pelo cliente"
+                className="w-full bg-slate-950 border border-amber-700/80 rounded-lg px-3 py-2 text-sm text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-400"
+              />
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Valor Total da OS: <strong className="font-mono">R$ {valorFinal.toFixed(2)}</strong></span>
+                <span>Restante a Receber: <strong className="text-amber-400 font-mono">R$ {Math.max(0, valorFinal - (valorPago || 0)).toFixed(2)}</strong></span>
+              </div>
+              <p className="text-[10px] text-slate-400 italic">
+                * Apenas os R$ {(valorPago || 0).toFixed(2)} recebidos serão contabilizados no Caixa. O saldo restante permanecerá em "A Receber".
+              </p>
+            </div>
+          )}
 
           {/* Open checklist checkbox option */}
           {!editingOrder && (

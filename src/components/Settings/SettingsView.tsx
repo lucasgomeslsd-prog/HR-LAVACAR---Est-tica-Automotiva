@@ -371,7 +371,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               Personalizador de Modelos de Mensagem WhatsApp
             </h3>
             <p className="text-xs text-slate-400">
-              Utilize tags dinâmicas como <code className="text-cyan-300 font-mono">{'{cliente_nome}'}</code>, <code className="text-cyan-300 font-mono">{'{veiculo}'}</code>, <code className="text-cyan-300 font-mono">{'{placa}'}</code>, <code className="text-cyan-300 font-mono">{'{os_numero}'}</code>, <code className="text-cyan-300 font-mono">{'{valor_total}'}</code> e <code className="text-cyan-300 font-mono">{'{previsao_entrega}'}</code>.
+              Utilize tags dinâmicas como <code className="text-cyan-300 font-mono">{'{cliente_nome}'}</code>, <code className="text-cyan-300 font-mono">{'{veiculo}'}</code>, <code className="text-cyan-300 font-mono">{'{placa}'}</code>, <code className="text-cyan-300 font-mono">{'{data_hora}'}</code>, <code className="text-cyan-300 font-mono">{'{servicos}'}</code>, <code className="text-cyan-300 font-mono">{'{os_numero}'}</code>, <code className="text-cyan-300 font-mono">{'{valor_total}'}</code> e <code className="text-cyan-300 font-mono">{'{previsao_entrega}'}</code>.
             </p>
 
             {/* Validation Error Banner */}

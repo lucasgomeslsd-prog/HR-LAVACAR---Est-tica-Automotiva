@@ -80,7 +80,14 @@ export const StorageService = {
   // WhatsApp Templates
   getTemplates: (): WhatsAppTemplate[] => {
     const data = localStorage.getItem(KEYS.TEMPLATES);
-    return data ? JSON.parse(data) : INITIAL_TEMPLATES;
+    let templates: WhatsAppTemplate[] = data ? JSON.parse(data) : INITIAL_TEMPLATES;
+    if (!templates.some(t => t.id === 'tpl-agendamento' || t.tipo === 'agendamento')) {
+      const defaultAgendamento = INITIAL_TEMPLATES.find(t => t.id === 'tpl-agendamento');
+      if (defaultAgendamento) {
+        templates = [...templates, defaultAgendamento];
+      }
+    }
+    return templates;
   },
   saveTemplates: (templates: WhatsAppTemplate[]) => {
     localStorage.setItem(KEYS.TEMPLATES, JSON.stringify(templates));
@@ -217,6 +224,7 @@ export function formatWhatsAppMessage(
     forma_pagamento?: string;
     empresa_nome?: string;
     empresa_endereco?: string;
+    data_hora?: string;
   }
 ): string {
   let text = templateContent;
@@ -232,7 +240,8 @@ export function formatWhatsAppMessage(
     '{servicos}': variables.servicos || 'Serviços cadastrados',
     '{forma_pagamento}': variables.forma_pagamento || 'A combinar',
     '{empresa_nome}': config.nomeEmpresa,
-    '{empresa_endereco}': config.endereco
+    '{empresa_endereco}': config.endereco,
+    '{data_hora}': variables.data_hora || ''
   };
 
   Object.entries(map).forEach(([key, value]) => {

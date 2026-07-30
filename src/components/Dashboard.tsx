@@ -62,10 +62,57 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const todayOrders = safeOrders.filter(o => isToday(o.dataAbertura));
-  const paidTodayOrders = todayOrders.filter(o => o.statusPagamento === 'PAGO');
-  const revenueToday = paidTodayOrders.reduce((acc, curr) => acc + (curr.valorFinal || 0), 0);
-  const pendingTodayOrders = todayOrders.filter(o => o.statusPagamento === 'PENDENTE');
-  const pendingTodayAmount = pendingTodayOrders.reduce((acc, curr) => acc + (curr.valorFinal || 0), 0);
+
+  // Financial Breakdown (Novo padrão do Caixa)
+  // Recebido: PAGO (valorFinal/valorPago), PAGO_PARCIAL (valorPago)
+  const totalRecebido = safeOrders.reduce((acc, o) => {
+    if (o.status === 'CANCELADA') return acc;
+    if (o.statusPagamento === 'PAGO') {
+      return acc + (o.valorPago !== undefined && o.valorPago > 0 ? o.valorPago : (o.valorFinal || 0));
+    }
+    if (o.statusPagamento === 'PAGO_PARCIAL') {
+      return acc + (o.valorPago || 0);
+    }
+    return acc;
+  }, 0);
+
+  // A Receber: PENDENTE (valorFinal), PAGAMENTO_A_PRAZO (valorFinal), PAGO_PARCIAL (valorFinal - valorPago)
+  const totalAReceber = safeOrders.reduce((acc, o) => {
+    if (o.status === 'CANCELADA') return acc;
+    if (o.statusPagamento === 'PENDENTE' || o.statusPagamento === 'PAGAMENTO_A_PRAZO') {
+      return acc + (o.valorFinal || 0);
+    }
+    if (o.statusPagamento === 'PAGO_PARCIAL') {
+      return acc + Math.max(0, (o.valorFinal || 0) - (o.valorPago || 0));
+    }
+    return acc;
+  }, 0);
+
+  // Troca em Serviços: TROCA_SERVICOS (valorFinal)
+  const totalTrocaServicos = safeOrders.reduce((acc, o) => {
+    if (o.status === 'CANCELADA') return acc;
+    if (o.statusPagamento === 'TROCA_SERVICOS') {
+      return acc + (o.valorFinal || 0);
+    }
+    return acc;
+  }, 0);
+
+  // Cortesias: CORTESIA (valorFinal)
+  const totalCortesias = safeOrders.reduce((acc, o) => {
+    if (o.status === 'CANCELADA') return acc;
+    if (o.statusPagamento === 'CORTESIA') {
+      return acc + (o.valorFinal || 0);
+    }
+    return acc;
+  }, 0);
+
+  // Cancelados: CANCELADO / OS Status CANCELADA
+  const totalCancelados = safeOrders.reduce((acc, o) => {
+    if (o.status === 'CANCELADA' || o.statusPagamento === 'CANCELADO') {
+      return acc + (o.valorFinal || 0);
+    }
+    return acc;
+  }, 0);
 
   const inProduction = safeOrders.filter(o => ['LAVAGEM', 'POLIMENTO', 'INSPECAO', 'AGUARDANDO'].includes(o.status));
   const readyForPickup = safeOrders.filter(o => o.status === 'PRONTO');
@@ -269,24 +316,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
             ) : (
               <div className="mt-2 space-y-3">
                 <div>
-                  <div className="text-3xl font-black text-white font-mono">
-                    R$ {revenueToday.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="text-[11px] text-emerald-400 font-bold uppercase tracking-wider block">
+                    Recebido (Caixa Real)
+                  </span>
+                  <div className="text-3xl font-black text-white font-mono mt-0.5">
+                    R$ {totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-[11px] text-emerald-400 font-semibold mt-0.5">
-                    Total recebido hoje ({paidTodayOrders.length} OSs pagas)
-                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Somente valores com recebimento financeiro (Pago / Parcial)
+                  </p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-slate-400 block text-[10px] font-medium">A Receber (Pendente)</span>
+                <div className="pt-2.5 border-t border-slate-800/80 space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-[11px]">A Receber (Prazo/Pendente):</span>
                     <span className="font-bold text-amber-400 font-mono">
-                      R$ {pendingTodayAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      R$ {totalAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px] font-medium">OSs de Hoje</span>
-                    <span className="font-bold text-slate-200 font-mono">{todayOrders.length} ordens</span>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-[11px]">Troca em Serviços:</span>
+                    <span className="font-bold text-blue-400 font-mono">
+                      R$ {totalTrocaServicos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-[11px]">Cortesias:</span>
+                    <span className="font-bold text-purple-400 font-mono">
+                      R$ {totalCortesias.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-[11px]">Cancelados:</span>
+                    <span className="font-bold text-rose-400 font-mono">
+                      R$ {totalCancelados.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
                 </div>
               </div>

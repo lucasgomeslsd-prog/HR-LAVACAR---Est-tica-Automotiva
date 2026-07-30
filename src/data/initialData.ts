@@ -105,6 +105,12 @@ export const INITIAL_TEMPLATES: WhatsAppTemplate[] = [
     tipo: 'comprovante',
     titulo: 'Comprovante / Recibo',
     conteudo: 'Comprovante de Serviço - *HR LAVACAR* 🧾\n\n*OS:* {os_numero}\n*Cliente:* {cliente_nome}\n*Veículo:* {veiculo} ({placa})\n*Valor Pago:* R$ {valor_total}\n*Status:* Pago ({forma_pagamento})\n\nAgradecemos a preferência! Volte sempre. 🚗💨'
+  },
+  {
+    id: 'tpl-agendamento',
+    tipo: 'agendamento',
+    titulo: 'Confirmação de Agendamento 📅',
+    conteudo: 'Olá {cliente_nome}! 👋\nSeu agendamento no *HR LAVACAR* foi confirmado com sucesso!\n\n🚗 *Veículo:* {veiculo} ({placa})\n📅 *Data e Horário:* {data_hora}\n🛠️ *Serviço Agendado:* {servicos}\n📍 *Local:* {empresa_endereco}\n\nEsperamos por você! Qualquer dúvida ou alteração, por favor nos avise aqui. 🚗✨'
   }
 ];
 

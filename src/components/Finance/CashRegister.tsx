@@ -717,6 +717,10 @@ export const CashRegister: React.FC<CashRegisterProps> = ({
                   <option value="PIX">PIX</option>
                   <option value="CARTAO_DEBITO">Cartão de Débito</option>
                   <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                  <option value="TRANSFERENCIA_BANCARIA">Transferência Bancária</option>
+                  <option value="PAGAMENTO_A_PRAZO">Pagamento a Prazo</option>
+                  <option value="TROCA_SERVICOS">Troca em Serviços</option>
+                  <option value="CORTESIA">Cortesia</option>
                 </select>
               </div>
 

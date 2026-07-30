@@ -17,6 +17,7 @@ import {
 import { 
   ServiceOrder, 
   Client, 
+  Appointment,
   WhatsAppTemplate, 
   WhatsAppLog, 
   WhatsAppApiConfig,
@@ -30,6 +31,7 @@ interface WhatsAppSendModalProps {
   onClose: () => void;
   order?: ServiceOrder | null;
   client?: Client | null;
+  appointment?: Appointment | null;
   templates: WhatsAppTemplate[];
   waConfig: WhatsAppApiConfig;
   businessConfig: BusinessConfig;
@@ -41,6 +43,7 @@ export const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
   onClose,
   order,
   client,
+  appointment,
   templates,
   waConfig,
   businessConfig,
@@ -53,40 +56,47 @@ export const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
   const [sendSuccess, setSendSuccess] = useState<boolean>(false);
 
   // Target client & phone
-  const targetClientName = order ? order.clientNome : client?.nome || 'Cliente';
-  const targetPhone = (order ? order.clientWhatsApp : client?.whatsapp) || '';
+  const targetClientName = appointment ? appointment.clientNome : order ? order.clientNome : client?.nome || 'Cliente';
+  const targetPhone = (appointment ? appointment.clientWhatsApp : order ? order.clientWhatsApp : client?.whatsapp) || '';
   const cleanPhone = targetPhone.replace(/\D/g, '');
   const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
 
   // Auto-fill template on change or load
   useEffect(() => {
-    if (order && order.status === 'PRONTO') {
+    if (appointment) {
+      setSelectedTemplateId('tpl-agendamento');
+    } else if (order && order.status === 'PRONTO') {
       setSelectedTemplateId('tpl-carro-pronto');
     } else if (order && order.status === 'ENTREGUE') {
       setSelectedTemplateId('tpl-comprovante');
     } else if (!order && client) {
       setSelectedTemplateId('tpl-boas-vindas');
     }
-  }, [order, client, isOpen]);
+  }, [order, client, appointment, isOpen]);
 
   useEffect(() => {
-    const tpl = templates.find(t => t.id === selectedTemplateId);
+    const tpl = templates.find(t => t.id === selectedTemplateId) || templates.find(t => t.tipo === 'agendamento');
     if (tpl) {
+      const formattedDate = appointment?.dataHora 
+        ? new Date(appointment.dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : 'Hoje';
+
       const formatted = formatWhatsAppMessage(tpl.conteudo, {
         cliente_nome: targetClientName,
-        veiculo: order ? `${order.vehicleMarca} ${order.vehicleModelo}` : client?.veiculos?.[0]?.modelo || 'Veículo',
-        placa: order ? order.vehiclePlaca : client?.veiculos?.[0]?.placa || '',
+        veiculo: appointment ? `${appointment.vehicleModelo}` : order ? `${order.vehicleMarca} ${order.vehicleModelo}` : client?.veiculos?.[0]?.modelo || 'Veículo',
+        placa: appointment ? appointment.vehiclePlaca : order ? order.vehiclePlaca : client?.veiculos?.[0]?.placa || '',
         os_numero: order ? order.numeroOS : '',
         valor_total: order ? (order.valorFinal || 0).toFixed(2) : '0,00',
         previsao_entrega: order && order.previsaoEntrega ? order.previsaoEntrega.replace('T', ' à(s) ') : 'Hoje',
-        servicos: order ? (order.servicos || []).map(s => `• ${s.nome} (R$ ${s.valor})`).join('\n') : 'Serviços de Lavagem e Estética',
+        data_hora: formattedDate,
+        servicos: appointment ? (appointment.servicosDesejados || []).join(', ') : order ? (order.servicos || []).map(s => `• ${s.nome} (R$ ${s.valor})`).join('\n') : 'Serviços de Lavagem e Estética',
         forma_pagamento: order?.formaPagamento || 'PIX/Cartão',
         empresa_nome: businessConfig?.nomeEmpresa || 'HR LAVACAR',
         empresa_endereco: businessConfig?.endereco || ''
       });
       setCustomText(formatted);
     }
-  }, [selectedTemplateId, order, client, templates]);
+  }, [selectedTemplateId, order, client, appointment, templates]);
 
   if (!isOpen) return null;
 
@@ -100,7 +110,7 @@ export const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
     const newLog: WhatsAppLog = {
       id: `walog-${Date.now()}`,
       osId: order?.id,
-      clientId: order ? order.clientId : client?.id || '',
+      clientId: appointment ? appointment.clientId : order ? order.clientId : client?.id || '',
       clientNome: targetClientName,
       whatsappNumber: targetPhone,
       dataEnvio: new Date().toISOString(),
@@ -126,7 +136,7 @@ export const WhatsAppSendModal: React.FC<WhatsAppSendModalProps> = ({
       const newLog: WhatsAppLog = {
         id: `walog-${Date.now()}`,
         osId: order?.id,
-        clientId: order ? order.clientId : client?.id || '',
+        clientId: appointment ? appointment.clientId : order ? order.clientId : client?.id || '',
         clientNome: targetClientName,
         whatsappNumber: targetPhone,
         dataEnvio: new Date().toISOString(),

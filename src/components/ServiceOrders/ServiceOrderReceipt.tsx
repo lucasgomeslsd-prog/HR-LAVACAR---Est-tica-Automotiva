@@ -137,6 +137,16 @@ export const ServiceOrderReceipt: React.FC<ServiceOrderReceiptProps> = ({
               <span className="font-bold text-slate-200 print:text-black uppercase">
                 {order.statusPagamento === 'PAGO' 
                   ? `PAGO (${order.formaPagamento || 'PIX'})` 
+                  : order.statusPagamento === 'PAGO_PARCIAL'
+                  ? `PARCIAL (R$ ${(order.valorPago || 0).toFixed(2)} - ${order.formaPagamento || 'PIX'})`
+                  : order.statusPagamento === 'PAGAMENTO_A_PRAZO'
+                  ? 'A PRAZO'
+                  : order.statusPagamento === 'TROCA_SERVICOS'
+                  ? 'TROCA EM SERVIÇOS'
+                  : order.statusPagamento === 'CORTESIA'
+                  ? 'CORTESIA'
+                  : order.statusPagamento === 'CANCELADO'
+                  ? 'CANCELADO'
                   : 'PENDENTE'}
               </span>
             </div>

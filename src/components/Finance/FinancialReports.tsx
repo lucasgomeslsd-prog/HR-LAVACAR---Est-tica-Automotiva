@@ -25,23 +25,37 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({
     businessConfig?.comissaoPadraoPercentual || 15
   );
 
-  // Completed orders
+  // Completed orders & Financial receipts
   const safeOrders = orders || [];
-  const paidOrders = safeOrders.filter(o => o.statusPagamento === 'PAGO');
+  
+  // Received amounts (PAGO + PAGO_PARCIAL)
+  const receivedOrders = safeOrders.filter(o => o.status !== 'CANCELADA' && (o.statusPagamento === 'PAGO' || o.statusPagamento === 'PAGO_PARCIAL'));
 
-  const totalFaturamento = paidOrders.reduce((acc, curr) => acc + (curr.valorFinal || 0), 0);
+  const totalFaturamento = receivedOrders.reduce((acc, curr) => {
+    if (curr.statusPagamento === 'PAGO') {
+      return acc + (curr.valorPago !== undefined && curr.valorPago > 0 ? curr.valorPago : (curr.valorFinal || 0));
+    }
+    if (curr.statusPagamento === 'PAGO_PARCIAL') {
+      return acc + (curr.valorPago || 0);
+    }
+    return acc;
+  }, 0);
 
   // Group revenue by operator/washer
   const operatorStats: Record<string, { totalOs: number; totalFaturamento: number; comissao: number }> = {};
 
-  paidOrders.forEach(o => {
+  receivedOrders.forEach(o => {
     const op = o.responsavelLavagem || 'Outro Operador';
     if (!operatorStats[op]) {
       operatorStats[op] = { totalOs: 0, totalFaturamento: 0, comissao: 0 };
     }
+    const orderVal = o.statusPagamento === 'PAGO_PARCIAL' 
+      ? (o.valorPago || 0) 
+      : (o.valorPago !== undefined && o.valorPago > 0 ? o.valorPago : o.valorFinal);
+
     operatorStats[op].totalOs += 1;
-    operatorStats[op].totalFaturamento += o.valorFinal;
-    operatorStats[op].comissao += o.valorFinal * (commissionPercent / 100);
+    operatorStats[op].totalFaturamento += orderVal;
+    operatorStats[op].comissao += orderVal * (commissionPercent / 100);
   });
 
   return (
@@ -79,7 +93,7 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({
           <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
             R$ {totalFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">{paidOrders.length} OSs pagas</p>
+          <p className="text-[11px] text-slate-500 mt-1">{receivedOrders.length} OSs com recebimento</p>
         </div>
 
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5">
