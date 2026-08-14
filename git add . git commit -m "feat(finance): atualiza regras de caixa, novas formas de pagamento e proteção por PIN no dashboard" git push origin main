@@ -1,0 +1,3 @@
+git add .
+git commit -m "feat(finance): atualiza regras de caixa, novas formas de pagamento e proteção por PIN no dashboard"
+git push origin main
